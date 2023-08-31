@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 @RestController
 public class ProductController {
 
@@ -25,12 +28,18 @@ public class ProductController {
         var productModel = new ProductModel();
         BeanUtils.copyProperties(productRecordDTO, productModel);
         return ResponseEntity.status(HttpStatus.CREATED).body(productRepository.save(productModel));
-
     }
-
     @GetMapping("/products")
     public ResponseEntity<List<ProductModel>> getAllProducts() {
-        return ResponseEntity.status(HttpStatus.OK).body(productRepository.findAll());
+        List<ProductModel>productsList = productRepository.findAll();
+        if(productsList.isEmpty()){
+            for (ProductModel product : productsList){
+            UUID id =product.getIdProduct();
+            product.add(linkTo(methodOn(ProductController.class).getOneProduct(id)).withSelfRel());
+
+            }
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(productsList);
 
     }
 
@@ -40,6 +49,7 @@ public class ProductController {
         if (productO.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Product not found");
         }
+        productO.get().add(linkTo(methodOn(ProductController.class).getAllProducts()).withRel("Products List"));
         return ResponseEntity.status(HttpStatus.OK).body(productO.get());
     }
 
